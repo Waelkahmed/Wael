@@ -18,6 +18,7 @@ final class HomeViewModel: ObservableObject {
     @Published var distanceKilometers: Double = 0
 
     @Published var rideType: RideType = .standard
+    @Published var promoCode: String = ""
 
     @Published var bookingConfirmation: RideConfirmation?
     @Published var bookingError: String?
@@ -27,6 +28,12 @@ final class HomeViewModel: ObservableObject {
     private let bookingService: RideBookingServicing
     private let searchCompleter: MKLocalSearchCompleter
     private let completerDelegate: SearchCompleterDelegate
+
+    private var pricingService: PricingService { session.pricingService }
+    private var tripStore: TripStore { session.tripStore }
+    private var notificationHelper: LocalNotificationHelper { session.notificationHelper }
+
+    private let session: AppSession = AppSession()
 
     init(locationManager: LocationManager = LocationManager(), bookingService: RideBookingServicing = RideBookingService()) {
         self.locationManager = locationManager
@@ -102,13 +109,11 @@ final class HomeViewModel: ObservableObject {
     }
 
     var fareEstimate: Double {
-        let base = rideType.baseFare + rideType.perKilometerRate * max(distanceKilometers, 0)
-        let surge = surgeMultiplier(for: Date())
-        return (base * surge).rounded(to: 2)
+        pricingService.estimateFare(distanceKm: distanceKilometers, rideType: rideType, when: Date(), promoCode: promoCode)
     }
 
     func bookRide() async {
-        guard let destName = destinationName else { return }
+        guard let destName = destinationName, let destCoord = destinationCoordinate else { return }
         isBooking = true
         defer { isBooking = false }
         let request = RideRequest(
@@ -121,15 +126,36 @@ final class HomeViewModel: ObservableObject {
         do {
             let confirmation = try await bookingService.bookRide(request: request)
             bookingConfirmation = confirmation
+            notificationHelper.schedule(title: "Driver arriving", body: "ETA ~ \(confirmation.etaMinutes) min", after: 1)
+            simulateDriverTracking(to: destCoord)
+            commitTripIfCompleted(dropoffName: destName, dropoffCoordinate: destCoord)
         } catch {
             bookingError = "Booking failed. Please try again."
         }
     }
 
-    private func surgeMultiplier(for date: Date) -> Double {
-        let hour = Calendar.current.component(.hour, from: date)
-        if (7...9).contains(hour) || (17...20).contains(hour) { return 1.25 }
-        return 1.0
+    private func commitTripIfCompleted(dropoffName: String, dropoffCoordinate: CLLocationCoordinate2D) {
+        guard let start = locationManager.userLocation else { return }
+        let trip = Trip(
+            id: UUID().uuidString,
+            pickupName: "Current Location",
+            dropoffName: dropoffName,
+            pickupCoordinate: start.coordinate,
+            dropoffCoordinate: dropoffCoordinate,
+            startDate: Date(),
+            endDate: Date().addingTimeInterval(600),
+            distanceKm: distanceKilometers,
+            fare: fareEstimate,
+            rideType: rideType,
+            rating: nil,
+            status: .completed
+        )
+        tripStore.add(trip)
+    }
+
+    private func simulateDriverTracking(to destination: CLLocationCoordinate2D) {
+        // Stub: in real app use WebSockets; here we only schedule a notification.
+        notificationHelper.schedule(title: "Trip complete", body: "Hope you enjoyed the ride!", after: 8)
     }
 }
 

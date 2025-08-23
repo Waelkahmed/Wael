@@ -7,16 +7,31 @@ SwiftUI sample for booking a ride. Includes a booking view, a Home screen with m
 - Map with user location (CoreLocation + MapKit)
 - Destination search with autocomplete (MKLocalSearchCompleter)
 - Route preview with ETA and distance
-- Fare estimate by ride type (Standard/XL/Luxury)
+- Fare estimate by ride type (Standard/XL/Luxury) and promo codes
 - Request ride using a mock service returning ETA and quoted fare
+- Tabs: Home, Trips (history, rate/cancel), Profile (payments, sign out)
+- Mock Auth (email/password)
+- Local notifications for key ride events
+- Safety actions: share and emergency placeholders
 
 ## Structure
 
-- `RideBookingApp/App/RideBookingApp.swift` (App entry → `HomeView`)
+- `RideBookingApp/App/RideBookingApp.swift` (App entry → Auth or `MainTabsView`)
+- `RideBookingApp/Core/AppSession.swift`
+- `RideBookingApp/Views/Tabs/MainTabsView.swift`
 - `RideBookingApp/Views/HomeView.swift`
 - `RideBookingApp/ViewModels/HomeViewModel.swift`
 - `RideBookingApp/Views/Components/MapViewRepresentable.swift`
 - `RideBookingApp/Core/LocationManager.swift`
+- `RideBookingApp/Views/Tabs/TripsView.swift`
+- `RideBookingApp/Core/TripStore.swift`
+- `RideBookingApp/Views/Tabs/ProfileView.swift`
+- `RideBookingApp/Models/User.swift`
+- `RideBookingApp/Services/AuthService.swift`
+- `RideBookingApp/Services/PaymentService.swift`
+- `RideBookingApp/Models/PaymentMethod.swift`
+- `RideBookingApp/Services/PricingService.swift`
+- `RideBookingApp/Core/LocalNotificationHelper.swift`
 - `RideBookingApp/Views/RideBookingView.swift` (standalone booking form)
 - `RideBookingApp/ViewModels/RideBookingViewModel.swift`
 - `RideBookingApp/Services/RideBookingService.swift`
@@ -35,12 +50,14 @@ SwiftUI sample for booking a ride. Includes a booking view, a Home screen with m
 Add these keys to your target’s Info tab (Custom iOS Target Properties):
 
 - `Privacy - Location When In Use Usage Description` → "We use your location to show nearby rides."
-- `NSLocationWhenInUseUsageDescription` (string) with a similar message (added automatically when using the above description in Xcode UI).
+- `NSUserTrackingUsageDescription` (optional, if you add analytics/ads in future)
+- `UNUserNotificationCenter` usage: no key required, but user permission prompts will appear when notifications are requested.
 
 Also enable:
-- Capabilities → Location Updates (not strictly required for foreground use) if you later support background.
+- Capabilities → Background Modes → Location updates (only if you test background location)
+- Push Notifications capability if you later add remote notifications
 
 Notes:
-- A mock `RideBookingService` simulates a network call and returns a confirmation with ETA and quoted fare.
-- Fare estimate is computed from ride type, route distance, and a simple peak-time multiplier.
+- This is an MVP demo: auth and services are mock/in-memory. Replace with your backend as needed.
+- Fare estimate is computed from ride type, route distance, surge, and optional promo codes.
 - This repo does not include an `.xcodeproj`; create the project with the steps above.

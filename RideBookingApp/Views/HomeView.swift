@@ -131,6 +131,31 @@ struct HomeView: View {
             }
             .pickerStyle(.segmented)
 
+            HStack {
+                TextField("Promo code", text: $viewModel.promoCode)
+                    .textInputAutocapitalization(.characters)
+                    .disableAutocorrection(true)
+                if !viewModel.promoCode.isEmpty {
+                    Button("Clear") { viewModel.promoCode = "" }
+                }
+            }
+
+            HStack(spacing: 16) {
+                Button {
+                    shareTrip()
+                } label: {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                }
+                .buttonStyle(.bordered)
+
+                Button(role: .destructive) {
+                    emergency()
+                } label: {
+                    Label("Emergency", systemImage: "exclamationmark.triangle")
+                }
+                .buttonStyle(.borderedProminent)
+            }
+
             Button {
                 Task { await viewModel.bookRide() }
             } label: {
@@ -146,6 +171,16 @@ struct HomeView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(radius: 8)
         .padding(.horizontal)
+    }
+
+    private func shareTrip() {
+        // Placeholder for sharing; integrate UIActivityViewController via UIViewControllerRepresentable as needed.
+        print("Share trip tapped")
+    }
+
+    private func emergency() {
+        // Placeholder for emergency action; dial local emergency or open an alert sheet.
+        print("Emergency tapped")
     }
 }
 
