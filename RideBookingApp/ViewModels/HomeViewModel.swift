@@ -31,7 +31,7 @@ final class HomeViewModel: ObservableObject {
     private let bookingService: RideBookingServicing
     private let searchCompleter: MKLocalSearchCompleter
     private let completerDelegate: SearchCompleterDelegate
-    private let trackingService = DriverTrackingService()
+    private let wsTracking = WebSocketDriverTrackingService()
 
     private var pricingService: PricingService { session.pricingService }
     private var tripStore: TripStore { session.tripStore }
@@ -54,17 +54,16 @@ final class HomeViewModel: ObservableObject {
 
     func onAppear() {
         locationManager.requestAuthorization()
-        trackingService.start(userCoordinate: locationManager.userLocation?.coordinate)
+        wsTracking.connect(baseURL: BackendClient.shared.baseURL, userCoordinate: locationManager.userLocation?.coordinate)
         startTrackingBindings()
     }
 
     private func startTrackingBindings() {
-        // Simple polling bridge for this demo
-        Timer.scheduledTimer(withTimeInterval: 2.1, repeats: true) { [weak self] _ in
+        Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor in
-                self.drivers = self.trackingService.nearbyDrivers
-                self.assignedDriver = self.trackingService.assignedDriver
+                self.drivers = self.wsTracking.drivers
+                self.assignedDriver = self.wsTracking.assignedDriver
             }
         }
     }
@@ -73,6 +72,7 @@ final class HomeViewModel: ObservableObject {
         searchQuery = text
         updateCompleterRegionIfNeeded()
         searchCompleter.queryFragment = text
+        if let c = locationManager.userLocation?.coordinate { wsTracking.subscribe(center: c) }
     }
 
     private func updateCompleterRegionIfNeeded() {
@@ -144,8 +144,7 @@ final class HomeViewModel: ObservableObject {
             let confirmation = try await bookingService.bookRide(request: request)
             bookingConfirmation = confirmation
             notificationHelper.schedule(title: "Driver arriving", body: "ETA ~ \(confirmation.etaMinutes) min", after: 1)
-            trackingService.start(userCoordinate: locationManager.userLocation?.coordinate)
-            simulateDriverTracking(to: destCoord)
+            if let c = locationManager.userLocation?.coordinate { wsTracking.subscribe(center: c) }
             commitTripIfCompleted(dropoffName: destName, dropoffCoordinate: destCoord)
         } catch {
             bookingError = "Booking failed. Please try again."
@@ -169,10 +168,6 @@ final class HomeViewModel: ObservableObject {
             status: .completed
         )
         tripStore.add(trip)
-    }
-
-    private func simulateDriverTracking(to destination: CLLocationCoordinate2D) {
-        notificationHelper.schedule(title: "Trip complete", body: "Hope you enjoyed the ride!", after: 8)
     }
 }
 

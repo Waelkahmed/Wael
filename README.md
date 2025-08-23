@@ -10,9 +10,10 @@ SwiftUI sample for booking a ride. Includes a booking view, a Home screen with m
 - Fare estimate by ride type (Standard/XL/Luxury) and promo codes
 - Request ride using a mock service returning ETA and quoted fare
 - Tabs: Home, Trips (history, rate/cancel), Profile (payments, sign out)
-- Mock Auth (email/password)
+- Auth: email/password (JWT backend), Apple Sign-In (demo)
 - Local notifications for key ride events
 - Safety actions: share and emergency placeholders
+- Live driver updates via WebSocket client (demo)
 
 ## Structure
 
@@ -27,18 +28,21 @@ SwiftUI sample for booking a ride. Includes a booking view, a Home screen with m
 - `RideBookingApp/Core/TripStore.swift`
 - `RideBookingApp/Views/Tabs/ProfileView.swift`
 - `RideBookingApp/Models/User.swift`
+- `RideBookingApp/Networking/BackendClient.swift`
+- `RideBookingApp/Networking/TokenStore.swift`
 - `RideBookingApp/Services/AuthService.swift`
+- `RideBookingApp/Services/AppleSignInService.swift`
 - `RideBookingApp/Services/PaymentService.swift`
 - `RideBookingApp/Models/PaymentMethod.swift`
 - `RideBookingApp/Services/PricingService.swift`
 - `RideBookingApp/Core/LocalNotificationHelper.swift`
 - `RideBookingApp/Services/StripePaymentService.swift`
-- `RideBookingApp/Services/DriverTrackingService.swift`
+- `RideBookingApp/Services/WebSocketDriverTrackingService.swift`
 - `RideBookingApp/Views/RideBookingView.swift` (standalone booking form)
 - `RideBookingApp/ViewModels/RideBookingViewModel.swift`
 - `RideBookingApp/Services/RideBookingService.swift`
 - `RideBookingApp/Models/RideType.swift`
-- Server in `server/` (Express + ws)
+- Server in `server/` (Express + ws + Prisma + JWT)
 
 ## Run (on macOS with Xcode)
 
@@ -50,29 +54,29 @@ SwiftUI sample for booking a ride. Includes a booking view, a Home screen with m
 
 ### Info.plist keys required
 
-Add these keys to your target’s Info tab (Custom iOS Target Properties):
-
 - `Privacy - Location When In Use Usage Description` → "We use your location to show nearby rides."
-- `NSUserTrackingUsageDescription` (optional, if you add analytics/ads in future)
 - Push capability if you add remote notifications
-
-Also enable:
-- Capabilities → Background Modes → Location updates (only if you test background location)
 
 ## Backend server (local)
 
 - Location: `server/`
 - Requirements: Node.js 18+
-- Setup:
-  - `cd server && npm install && npm start`
+- Setup (SQLite dev DB):
+  - `cd server && cp .env.example .env && sed -i 's#postgresql.*#"file:./dev.db"#' .env || true`
+  - `npm install`
+  - `npx prisma migrate dev --name init`
+  - `npm start`
 - API base: `http://localhost:4000`
 - WS endpoint: `ws://localhost:4000/ws`
 
-Endpoints:
-- POST `/auth/login` { email, password } → user
+Endpoints (subset):
+- POST `/auth/login` { email, password } → { user, accessToken, refreshToken, expiresIn }
+- POST `/auth/refresh` { refreshToken } → { accessToken, expiresIn }
+- POST `/auth/apple` { identityToken } → { user, accessToken, refreshToken }
+- POST `/devices/register` (Bearer) { token, platform } → { ok }
 - POST `/pricing/estimate` { rideType, distanceKm, when, promoCode } → { fare }
-- GET `/trips` (header `x-user-id`) → { trips }
-- POST `/trips` (header `x-user-id`) body `{ ...trip }` → trip
+- GET `/trips` (Bearer) → { trips }
+- POST `/trips` (Bearer) → trip
 - POST `/payments/intent` { amountCents, currency } → { clientSecret }
 
 WS usage:
@@ -81,11 +85,8 @@ WS usage:
 
 ## APNs (push) quick notes
 
-- App registers for notifications on launch via `AppDelegate`.
-- For real push, configure an APNs key/cert in your Apple Developer account and a push provider.
-- For local dev, the app handles foreground notifications with banners/sounds when authorized.
+- App registers for notifications on launch via `AppDelegate` and registers the token with backend after sign-in.
 
 Notes:
-- This is an MVP demo: auth, pricing, payments, and tracking are mocked/stubbed. Replace with your backend as needed.
-- Fare estimate is computed from ride type, route distance, surge, and optional promo codes.
-- This repo does not include an `.xcodeproj`; create the project with the steps above.
+- Demo only: Apple Sign-In endpoint is a stub; validate token server-side in production.
+- SQLite is used for local dev; switch `.env` and Prisma datasource to Postgres when ready.

@@ -26,6 +26,19 @@ struct AuthView: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(isSigningIn)
+
+            Divider().padding(.vertical, 8)
+
+            Button {
+                Task { await signInWithAppleDemo() }
+            } label: {
+                HStack {
+                    Image(systemName: "applelogo")
+                    Text("Sign in with Apple (Demo)")
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
         }
         .padding()
     }
@@ -37,6 +50,17 @@ struct AuthView: View {
             try await session.signIn(email: email, password: password)
         } catch {
             self.error = "Invalid credentials"
+        }
+    }
+
+    private func signInWithAppleDemo() async {
+        isSigningIn = true
+        defer { isSigningIn = false }
+        do {
+            let user = try await AppleSignInService().signInWithApple(identityToken: UUID().uuidString)
+            session.currentUser = user
+        } catch {
+            self.error = "Apple Sign-In failed"
         }
     }
 }
