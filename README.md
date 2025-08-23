@@ -1,11 +1,23 @@
 # RideBookingApp
 
-SwiftUI sample for booking a ride. Includes a booking view, view model, and a mock service.
+SwiftUI sample for booking a ride. Includes a booking view, a Home screen with map and destination search, view models, and a mock service.
+
+## Features (MVP, Uber-like)
+
+- Map with user location (CoreLocation + MapKit)
+- Destination search with autocomplete (MKLocalSearchCompleter)
+- Route preview with ETA and distance
+- Fare estimate by ride type (Standard/XL/Luxury)
+- Request ride using a mock service returning ETA and quoted fare
 
 ## Structure
 
-- `RideBookingApp/App/RideBookingApp.swift`
-- `RideBookingApp/Views/RideBookingView.swift`
+- `RideBookingApp/App/RideBookingApp.swift` (App entry → `HomeView`)
+- `RideBookingApp/Views/HomeView.swift`
+- `RideBookingApp/ViewModels/HomeViewModel.swift`
+- `RideBookingApp/Views/Components/MapViewRepresentable.swift`
+- `RideBookingApp/Core/LocationManager.swift`
+- `RideBookingApp/Views/RideBookingView.swift` (standalone booking form)
 - `RideBookingApp/ViewModels/RideBookingViewModel.swift`
 - `RideBookingApp/Services/RideBookingService.swift`
 - `RideBookingApp/Models/RideType.swift`
@@ -18,7 +30,17 @@ SwiftUI sample for booking a ride. Includes a booking view, view model, and a mo
 4. Drag the folder `/workspace/RideBookingApp` into the project navigator (Copy items if needed, Create folder references or groups as you prefer).
 5. Ensure `RideBookingApp.swift` is set as the app entry. Build and run.
 
+### Info.plist keys required
+
+Add these keys to your target’s Info tab (Custom iOS Target Properties):
+
+- `Privacy - Location When In Use Usage Description` → "We use your location to show nearby rides."
+- `NSLocationWhenInUseUsageDescription` (string) with a similar message (added automatically when using the above description in Xcode UI).
+
+Also enable:
+- Capabilities → Location Updates (not strictly required for foreground use) if you later support background.
+
 Notes:
 - A mock `RideBookingService` simulates a network call and returns a confirmation with ETA and quoted fare.
-- Fare estimate is computed locally from ride type, distance, and a simple peak-time multiplier.
+- Fare estimate is computed from ride type, route distance, and a simple peak-time multiplier.
 - This repo does not include an `.xcodeproj`; create the project with the steps above.
