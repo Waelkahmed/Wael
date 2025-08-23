@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String           @id @default(uuid())
+  email          String           @unique
+  name           String?
+  passwordHash   String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  devices        Device[]
+  trips          Trip[]
+  paymentMethods PaymentMethod[]
+}
+
+model Device {
+  id        String   @id @default(uuid())
+  token     String
+  platform  String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+}
+
+model Trip {
+  id               String   @id @default(uuid())
+  pickupName       String
+  dropoffName      String
+  pickupLat        Float
+  pickupLon        Float
+  dropoffLat       Float
+  dropoffLon       Float
+  startDate        DateTime
+  endDate          DateTime
+  distanceKm       Float
+  fare             Float
+  rideType         String
+  rating           Int?
+  status           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String
+  createdAt        DateTime @default(now())
+}
+
+model PaymentMethod {
+  id        String   @id @default(uuid())
+  brand     String
+  last4     String
+  isDefault Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+}
