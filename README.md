@@ -32,10 +32,13 @@ SwiftUI sample for booking a ride. Includes a booking view, a Home screen with m
 - `RideBookingApp/Models/PaymentMethod.swift`
 - `RideBookingApp/Services/PricingService.swift`
 - `RideBookingApp/Core/LocalNotificationHelper.swift`
+- `RideBookingApp/Services/StripePaymentService.swift`
+- `RideBookingApp/Services/DriverTrackingService.swift`
 - `RideBookingApp/Views/RideBookingView.swift` (standalone booking form)
 - `RideBookingApp/ViewModels/RideBookingViewModel.swift`
 - `RideBookingApp/Services/RideBookingService.swift`
 - `RideBookingApp/Models/RideType.swift`
+- Server in `server/` (Express + ws)
 
 ## Run (on macOS with Xcode)
 
@@ -51,13 +54,38 @@ Add these keys to your target’s Info tab (Custom iOS Target Properties):
 
 - `Privacy - Location When In Use Usage Description` → "We use your location to show nearby rides."
 - `NSUserTrackingUsageDescription` (optional, if you add analytics/ads in future)
-- `UNUserNotificationCenter` usage: no key required, but user permission prompts will appear when notifications are requested.
+- Push capability if you add remote notifications
 
 Also enable:
 - Capabilities → Background Modes → Location updates (only if you test background location)
-- Push Notifications capability if you later add remote notifications
+
+## Backend server (local)
+
+- Location: `server/`
+- Requirements: Node.js 18+
+- Setup:
+  - `cd server && npm install && npm start`
+- API base: `http://localhost:4000`
+- WS endpoint: `ws://localhost:4000/ws`
+
+Endpoints:
+- POST `/auth/login` { email, password } → user
+- POST `/pricing/estimate` { rideType, distanceKm, when, promoCode } → { fare }
+- GET `/trips` (header `x-user-id`) → { trips }
+- POST `/trips` (header `x-user-id`) body `{ ...trip }` → trip
+- POST `/payments/intent` { amountCents, currency } → { clientSecret }
+
+WS usage:
+- Connect and send: `{ "type":"subscribe", "lat": 37.77, "lon": -122.42 }`
+- Receive: `{ "type":"drivers", "drivers": [{"id":"d1","lat":..,"lon":..}], "assignedDriverId": "d1" }`
+
+## APNs (push) quick notes
+
+- App registers for notifications on launch via `AppDelegate`.
+- For real push, configure an APNs key/cert in your Apple Developer account and a push provider.
+- For local dev, the app handles foreground notifications with banners/sounds when authorized.
 
 Notes:
-- This is an MVP demo: auth and services are mock/in-memory. Replace with your backend as needed.
+- This is an MVP demo: auth, pricing, payments, and tracking are mocked/stubbed. Replace with your backend as needed.
 - Fare estimate is computed from ride type, route distance, surge, and optional promo codes.
 - This repo does not include an `.xcodeproj`; create the project with the steps above.

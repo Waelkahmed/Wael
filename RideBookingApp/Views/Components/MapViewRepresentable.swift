@@ -5,6 +5,8 @@ struct MapViewRepresentable: UIViewRepresentable {
     let userLocation: CLLocation?
     let destinationCoordinate: CLLocationCoordinate2D?
     let routePolyline: MKPolyline?
+    var drivers: [Driver] = []
+    var assignedDriver: Driver?
 
     func makeUIView(context: Context) -> MKMapView {
         let mapView = MKMapView()
@@ -24,6 +26,12 @@ struct MapViewRepresentable: UIViewRepresentable {
             annotation.coordinate = dest
             annotation.title = "Destination"
             mapView.addAnnotation(annotation)
+        }
+        for d in drivers {
+            let a = MKPointAnnotation()
+            a.coordinate = d.coordinate
+            a.title = assignedDriver?.id == d.id ? "Your Driver" : "Driver"
+            mapView.addAnnotation(a)
         }
 
         // Overlays

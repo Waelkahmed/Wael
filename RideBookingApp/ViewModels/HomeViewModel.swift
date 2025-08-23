@@ -24,10 +24,14 @@ final class HomeViewModel: ObservableObject {
     @Published var bookingError: String?
     @Published var isBooking: Bool = false
 
+    @Published var drivers: [Driver] = []
+    @Published var assignedDriver: Driver?
+
     let locationManager: LocationManager
     private let bookingService: RideBookingServicing
     private let searchCompleter: MKLocalSearchCompleter
     private let completerDelegate: SearchCompleterDelegate
+    private let trackingService = DriverTrackingService()
 
     private var pricingService: PricingService { session.pricingService }
     private var tripStore: TripStore { session.tripStore }
@@ -50,6 +54,19 @@ final class HomeViewModel: ObservableObject {
 
     func onAppear() {
         locationManager.requestAuthorization()
+        trackingService.start(userCoordinate: locationManager.userLocation?.coordinate)
+        startTrackingBindings()
+    }
+
+    private func startTrackingBindings() {
+        // Simple polling bridge for this demo
+        Timer.scheduledTimer(withTimeInterval: 2.1, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                self.drivers = self.trackingService.nearbyDrivers
+                self.assignedDriver = self.trackingService.assignedDriver
+            }
+        }
     }
 
     func onSearchQueryChange(_ text: String) {
@@ -127,6 +144,7 @@ final class HomeViewModel: ObservableObject {
             let confirmation = try await bookingService.bookRide(request: request)
             bookingConfirmation = confirmation
             notificationHelper.schedule(title: "Driver arriving", body: "ETA ~ \(confirmation.etaMinutes) min", after: 1)
+            trackingService.start(userCoordinate: locationManager.userLocation?.coordinate)
             simulateDriverTracking(to: destCoord)
             commitTripIfCompleted(dropoffName: destName, dropoffCoordinate: destCoord)
         } catch {
@@ -154,7 +172,6 @@ final class HomeViewModel: ObservableObject {
     }
 
     private func simulateDriverTracking(to destination: CLLocationCoordinate2D) {
-        // Stub: in real app use WebSockets; here we only schedule a notification.
         notificationHelper.schedule(title: "Trip complete", body: "Hope you enjoyed the ride!", after: 8)
     }
 }

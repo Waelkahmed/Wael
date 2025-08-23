@@ -9,7 +9,9 @@ struct HomeView: View {
             MapViewRepresentable(
                 userLocation: viewModel.locationManager.userLocation,
                 destinationCoordinate: viewModel.destinationCoordinate,
-                routePolyline: viewModel.route?.polyline
+                routePolyline: viewModel.route?.polyline,
+                drivers: viewModel.drivers,
+                assignedDriver: viewModel.assignedDriver
             )
             .ignoresSafeArea()
 
@@ -174,12 +176,10 @@ struct HomeView: View {
     }
 
     private func shareTrip() {
-        // Placeholder for sharing; integrate UIActivityViewController via UIViewControllerRepresentable as needed.
         print("Share trip tapped")
     }
 
     private func emergency() {
-        // Placeholder for emergency action; dial local emergency or open an alert sheet.
         print("Emergency tapped")
     }
 }
