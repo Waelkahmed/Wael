@@ -31,18 +31,20 @@ final class HomeViewModel: ObservableObject {
     private let bookingService: RideBookingServicing
     private let searchCompleter: MKLocalSearchCompleter
     private let completerDelegate: SearchCompleterDelegate
-    private let wsTracking = WebSocketDriverTrackingService()
+    private let wsTracking: WebSocketDriverTrackingService
 
     private var pricingService: PricingService { session.pricingService }
     private var tripStore: TripStore { session.tripStore }
     private var notificationHelper: LocalNotificationHelper { session.notificationHelper }
 
-    private let session: AppSession = AppSession()
+    private let session: AppSession
 
-    init(locationManager: LocationManager = LocationManager(), bookingService: RideBookingServicing = RideBookingService()) {
-        self.locationManager = locationManager
+    init(locationManager: LocationManager? = nil, bookingService: RideBookingServicing = RideBookingService()) {
+        self.locationManager = locationManager ?? LocationManager()
         self.bookingService = bookingService
         self.searchCompleter = MKLocalSearchCompleter()
+        self.wsTracking = WebSocketDriverTrackingService()
+        self.session = AppSession()
         self.completerDelegate = SearchCompleterDelegate { [weak self] completions in
             Task { @MainActor in
                 self?.suggestions = completions
