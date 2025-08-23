@@ -25,6 +25,10 @@ final class AppSession: ObservableObject {
         self.pricingService = pricingService
         self.notificationHelper = notificationHelper
         self.authService = authService
+        NotificationCenter.default.addObserver(forName: NSNotification.Name("apnsTokenUpdated"), object: nil, queue: .main) { [weak self] note in
+            guard let token = note.object as? String else { return }
+            Task { try? await BackendClient.shared.registerDevice(token: token) }
+        }
     }
 
     var isAuthenticated: Bool { currentUser != nil }
@@ -32,10 +36,14 @@ final class AppSession: ObservableObject {
     func signIn(email: String, password: String) async throws {
         let user = try await authService.signIn(email: email, password: password)
         currentUser = user
+        if let token = UserDefaults.standard.string(forKey: "apns_token") {
+            try? await BackendClient.shared.registerDevice(token: token)
+        }
     }
 
     func signOut() {
         currentUser = nil
         activeTrip = nil
+        TokenStore.shared.clear()
     }
 }
