@@ -14,17 +14,17 @@ final class AppSession: ObservableObject {
     let authService: AuthServicing
 
     init(
-        tripStore: TripStore = TripStore(),
-        paymentService: PaymentService = PaymentService(),
-        pricingService: PricingService = PricingService(),
-        notificationHelper: LocalNotificationHelper = LocalNotificationHelper(),
-        authService: AuthServicing = AuthService()
+        tripStore: TripStore? = nil,
+        paymentService: PaymentService? = nil,
+        pricingService: PricingService? = nil,
+        notificationHelper: LocalNotificationHelper? = nil,
+        authService: AuthServicing? = nil
     ) {
-        self.tripStore = tripStore
-        self.paymentService = paymentService
-        self.pricingService = pricingService
-        self.notificationHelper = notificationHelper
-        self.authService = authService
+        self.tripStore = tripStore ?? TripStore()
+        self.paymentService = paymentService ?? PaymentService()
+        self.pricingService = pricingService ?? PricingService()
+        self.notificationHelper = notificationHelper ?? LocalNotificationHelper()
+        self.authService = authService ?? AuthService()
         NotificationCenter.default.addObserver(forName: NSNotification.Name("apnsTokenUpdated"), object: nil, queue: .main) { [weak self] note in
             guard let token = note.object as? String else { return }
             Task { try? await BackendClient.shared.registerDevice(token: token) }
